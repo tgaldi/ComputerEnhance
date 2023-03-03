@@ -115,12 +115,15 @@ static const char opCodeTable[op_count] = { 0b0, 0b00100010 };
 static const char* opNameTable[op_count] = { "no_op\0", "mov\0" };
 const char* opLookup( const char op )
 {
-    int opCode = no_op;
+    int tableLength = sizeof( opCodeTable ) / sizeof( char );
+    if( tableLength != sizeof( opNameTable ) / sizeof( char* ) )
+        return "invalid op code tables\0";
 
+    int opCode = no_op;
     const char* opPtr = opCodeTable;
-    while( opCode < op_count )
+    while( opPtr < opCodeTable + tableLength )
     {
-        if( opPtr[opCode] == op )
+        if( *opPtr++ == op )
             break;
 
         ++opCode;
