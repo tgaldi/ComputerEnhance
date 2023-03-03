@@ -11,8 +11,6 @@ const char* displacementLookup( const char, const char, const char );
 
 int main( int argc, char** argv )
 {
-    int exitCode = 0;
-
     // ensure cmd arg was provided
     if( argc < 1 )
     {
@@ -63,14 +61,14 @@ int main( int argc, char** argv )
         exit( 4 );
     }
 
-    char* opTablePtr = buffer;
+    char* opPtr = buffer;
     char* endPtr = buffer + fileSize;
 
     // read op codes
-    while( opTablePtr < endPtr )
+    while( opPtr < endPtr )
     {
-        char hi = *opTablePtr++;
-        char lo = *opTablePtr++;
+        char hi = *opPtr++;
+        char lo = *opPtr++;
         execute( hi, lo );
     }
 
@@ -119,10 +117,10 @@ const char* opLookup( const char op )
 {
     int opCode = no_op;
 
-    const char* opTablePtr = opCodeTable;
+    const char* opPtr = opCodeTable;
     while( opCode < op_count )
     {
-        if( opTablePtr[opCode] == op )
+        if( opPtr[opCode] == op )
             break;
 
         ++opCode;
@@ -143,8 +141,8 @@ enum registers
     BH,
     reg_count
 };
-static const char* regNameTable[2][reg_count] = { { "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh" },
-                                                { "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" } };
+static const char* regNameTable[2][reg_count] = { { "al\0", "cl\0", "dl\0", "bl\0", "ah\0", "ch\0", "dh\0", "bh\0" },
+                                                { "ax\0", "cx\0", "dx\0", "bx\0", "sp\0", "bp\0", "si\0", "di\0" } };
 const char* registerLookup( const char reg, const char w )
 {
     if( reg >= reg_count )
