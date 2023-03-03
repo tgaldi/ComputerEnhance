@@ -107,21 +107,17 @@ const char getbits( char x, int p, int n )
 
 enum opCodes
 {
-    no_op,
     mov,
+    no_op,
     op_count
 };
-static const char opCodeTable[op_count] = { 0b0, 0b00100010 };
-static const char* opNameTable[op_count] = { "no_op\0", "mov\0" };
+static const char opCodeTable[op_count] = { 0b00100010, 0b0 };
+static const char* opNameTable[op_count] = { "mov\0", "no_op\0" };
 const char* opLookup( const char op )
 {
-    int tableLength = sizeof( opCodeTable ) / sizeof( char );
-    if( tableLength != sizeof( opNameTable ) / sizeof( char* ) )
-        return "invalid op code tables\0";
-
-    int opCode = no_op;
+    int opCode = 1;
     const char* opPtr = opCodeTable;
-    while( opPtr < opCodeTable + tableLength )
+    while( opPtr < opCodeTable + op_count )
     {
         if( *opPtr++ == op )
             break;
@@ -129,7 +125,7 @@ const char* opLookup( const char op )
         ++opCode;
     }
 
-    return opNameTable[opCode];
+    return opNameTable[opCode - 1];
 }
 
 enum registers
