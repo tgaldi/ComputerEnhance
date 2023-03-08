@@ -31,8 +31,14 @@
 *.out
 *.app
 
+# Incremental Link 
 *.ilk
+
+#Debug symbols
 *.pdb
 
+#vs code
 *.editorconfig
-.vscode
+*.vscode
+*.db*
+*.code-workspace
