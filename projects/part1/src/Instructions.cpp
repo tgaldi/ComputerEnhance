@@ -49,18 +49,18 @@ enum mode
     reg_mode,
     mode_count
 };
-Operation* Mov_To_From( char*& instrPtr )
+Operation Mov_To_From( char*& instrPtr )
 {
-    Operation* op = (Operation*)calloc( 1, sizeof( Operation ) );
-    op->opName = "mov";
+    Operation op;
+    op.opName = "mov";
 
     char hi = *instrPtr;
-    char d = getbits( hi, 1, 1 );
-    char w = getbits( hi, 0, 1 );
     // std::cout << std::bitset<8>( *instrPtr ) << std::endl;
 
-    ++instrPtr;
-    char lo = *instrPtr;
+    char d = getbits( hi, 1, 1 );
+    char w = getbits( hi, 0, 1 );
+
+    char lo = *(++instrPtr);
     // std::cout << std::bitset<8>( *instrPtr ) << std::endl;
 
     char mod = getbits( lo, 7, 2 );
@@ -71,15 +71,13 @@ Operation* Mov_To_From( char*& instrPtr )
     {
         case byte_mode:
         {
-            if( d == 0 )
-                op->dest = "[" + effectiveAddressTable[rm] + "]";
-            else
-                op->dest = registerLookup( reg, w );
+            op.dest = d
+                ? registerLookup( reg, w )
+                : "[" + effectiveAddressTable[rm] + "]";
 
-            if( d == 1 )
-                op->src = "[" + effectiveAddressTable[rm] + " + " + std::to_string( *(++instrPtr) ) + "]";
-            else
-                op->src = registerLookup( reg, w );
+            op.src = d
+                ? "[" + effectiveAddressTable[rm] + " + " + std::to_string( *(++instrPtr) ) + "]"
+                : registerLookup( reg, w );
 
             break;
         }
@@ -87,36 +85,32 @@ Operation* Mov_To_From( char*& instrPtr )
         {
             lo = *(++instrPtr);
 
-            if( d == 0 )
-                op->dest = "[" + effectiveAddressTable[rm] + "]";
-            else
-                op->dest = registerLookup( reg, w );
+            op.dest = d
+                ? registerLookup( reg, w )
+                : "[" + effectiveAddressTable[rm] + "]";
 
-            if( d == 1 )
-                op->src = "[" + effectiveAddressTable[rm] + " + " + std::to_string( (char)*(++instrPtr) << 8 | (unsigned char)lo ) + "]";
-            else
-                op->src = registerLookup( reg, w );
+            op.src = d
+                ? op.src = "[" + effectiveAddressTable[rm] + " + " + std::to_string( (char)*(++instrPtr) << 8 | (unsigned char)lo ) + "]"
+                : registerLookup( reg, w );
 
             break;
         }
         case reg_mode:
         {
-            op->dest = d ? registerLookup( reg, w ) : registerLookup( rm, w );
+            op.dest = d ? registerLookup( reg, w ) : registerLookup( rm, w );
 
-            op->src = d ? registerLookup( rm, w ) : registerLookup( reg, w );
+            op.src = d ? registerLookup( rm, w ) : registerLookup( reg, w );
             break;
         }
         case mem_mode:
         {
-            if( d == 0 )
-                op->dest = "[" + effectiveAddressTable[rm] + "]";
-            else
-                op->dest = registerLookup( reg, w );
+            op.dest = d
+                ? registerLookup( reg, w )
+                : "[" + effectiveAddressTable[rm] + "]";
 
-            if( d == 1 )
-                op->src = "[" + effectiveAddressTable[rm] + "]";
-            else
-                op->src = registerLookup( reg, w );
+            op.src = d
+                ? "[" + effectiveAddressTable[rm] + "]"
+                : registerLookup( reg, w );
 
             break;
         }
@@ -128,29 +122,25 @@ Operation* Mov_To_From( char*& instrPtr )
     return op;
 }
 
-Operation* Mov_Immediate( char*& instrPtr )
+Operation Mov_Immediate( char*& instrPtr )
 {
-    Operation* op = (Operation*)calloc( 1, sizeof( Operation ) );
-    op->opName = "mov";
+    Operation op;
+    op.opName = "mov";
 
     char hi = *instrPtr;
-    char w = getbits( hi, 3, 1 );
-    char reg = getbits( hi, 2, 3 );
     // std::cout << std::bitset<8>( *instrPtr ) << std::endl;
 
-    op->dest = registerLookup( reg, w );
+    char w = getbits( hi, 3, 1 );
+    char reg = getbits( hi, 2, 3 );
+
+    op.dest = registerLookup( reg, w );
 
     char lo = *(++instrPtr);
     // std::cout << std::bitset<8>( *instrPtr ) << std::endl;
 
-    if( w )
-    {
-        op->src = std::to_string( (char)*(++instrPtr) << 8 | (unsigned char)lo );
-    }
-    else
-    {
-        op->src = std::to_string( lo );
-    }
+    op.src = w
+        ? std::to_string( (char)*(++instrPtr) << 8 | (unsigned char)lo )
+        : std::to_string( lo );
 
     return op;
 }

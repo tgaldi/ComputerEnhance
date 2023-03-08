@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <bitset>
-#include <iostream>
 
 #include "Instructions.h"
 
@@ -11,12 +9,10 @@ void Process( char* opStream, long streamSize )
     while( opStream < endStream )
     {
         Instruction instruction = GetInstruction( *opStream );
-        Operation* op = instruction.Execute( opStream );
-        printf( "%s %s, %s", op->opName, op->dest.c_str(), op->src.c_str() );
+        Operation op = instruction.Execute( opStream );
 
-        free( op );
+        printf( "%s %s, %s\n", op.opName, op.dest.c_str(), op.src.c_str() );
 
-        std::cout << std::endl;
         ++opStream;
     }
 }
@@ -31,11 +27,12 @@ int main( int argc, char** argv )
     }
 
     // open the binary file
+    FILE* file;
     char* fileName = argv[1];
-    FILE* file = fopen( argv[1], "rb" );
+    auto error = fopen_s( &file, argv[1], "rb" );
 
     // ensure file is valid
-    if( file == nullptr )
+    if( error )
     {
         fprintf( stderr, "ERROR: Cannot open file %s\n", fileName );
         exit( 1 );
@@ -54,7 +51,7 @@ int main( int argc, char** argv )
     {
         fprintf( stderr, "ERROR: Cannot allocate space for buffer.\n" );
         fclose( file );
-        exit( 3 );
+        exit( 2 );
     }
 
     // read file into buffer
@@ -65,7 +62,7 @@ int main( int argc, char** argv )
     if( result != fileSize )
     {
         fprintf( stderr, "ERROR: Error reading file.\n" );
-        exit( 4 );
+        exit( 3 );
     }
 
     Process( buffer, fileSize );
