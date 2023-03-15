@@ -35,7 +35,7 @@ Operation DecodeInstruction( char*& opstream )
         }
         else if( GetBits( hi, 6, 5 ) != 0b0 )
         {
-            if( GetBits( *opstream, 4, 1 ) )
+            if( GetBits( hi, 4, 1 ) )
             {
                 operation = Mov_Immediate( opstream );
             }
@@ -61,7 +61,7 @@ Operation Loop( char*& opstream )
     op.name = loopTable[GetBits( hi, 3, 4 )];
 
     char inc8 = *(++opstream);
-    op.dest = std::to_string( inc8 ).c_str();
+    op.dest = std::to_string( inc8 );
 
     // std::cout << std::bitset<8>( hi ) << std::endl;
     // std::cout << std::bitset<8>( inc8 ) << std::endl;
@@ -78,7 +78,7 @@ Operation Jump( char*& opstream )
     op.name = jumpTable[GetBits( hi, 3, 4 )];
 
     char inc8 = *(++opstream);
-    op.dest = std::to_string( inc8 ).c_str();
+    op.dest = std::to_string( inc8 );
 
     // std::cout << std::bitset<8>( hi ) << std::endl;
     // std::cout << std::bitset<8>( inc8 ) << std::endl;
@@ -104,8 +104,8 @@ Operation Immediate_Accumulator( char*& opstream )
     // std::cout << std::bitset<8>( lo ) << std::endl;
 
     op.src = w
-        ? std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo ).c_str()
-        : std::to_string( lo ).c_str();
+        ? std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo )
+        : std::to_string( lo );
 
     op.dest += ",";
     return op;
@@ -128,8 +128,8 @@ Operation Mov_Immediate( char*& opstream )
     // std::cout << std::bitset<8>( *opstream ) << std::endl;
 
     op.src = w
-        ? std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo ).c_str()
-        : std::to_string( lo ).c_str();
+        ? std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo )
+        : std::to_string( lo );
 
     op.dest += ",";
     return op;
@@ -208,22 +208,22 @@ Operation Immediate( char*& opstream )
     {
         case 0: // unsigned byte
         {
-            op.src = std::to_string( lo ).c_str();
+            op.src = std::to_string( lo );
             break;
         }
         case 1: // unsigned word
         {
-            op.src = std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo ).c_str();
+            op.src = std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo );
             break;
         }
         case 2: // signed byte
         {
-            op.src = std::to_string( lo ).c_str();
+            op.src = std::to_string( lo );
             break;
         }
         case 3: // signed word
         {
-            op.src = std::to_string( (short)lo ).c_str();
+            op.src = std::to_string( (short)lo );
             break;
         }
     }
