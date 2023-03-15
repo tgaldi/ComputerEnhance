@@ -1,18 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "Instructions.h"
+#include "Decode.h"
 
 void Process( char* opStream, long streamSize )
 {
     char* endStream = opStream + streamSize - 1;
     while( opStream < endStream )
     {
-        Instruction instruction = GetInstruction( *opStream );
-        Operation op = instruction.Execute( opStream );
-
-        printf( "%s %s, %s\n", op.opName, op.dest.c_str(), op.src.c_str() );
-
+        Operation op = DecodeInstruction( opStream );
+        printf( "%s %s %s\n", op.name, op.dest.c_str(), op.src.c_str() );
         ++opStream;
     }
 }

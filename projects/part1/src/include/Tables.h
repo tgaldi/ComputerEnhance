@@ -1,10 +1,17 @@
 #pragma once
 
-#include "Instructions.h"
+#include <string>
 
-Instruction instructionTable[] = { { 0b1011000, &Mov_Immediate }, { 0b00100010, &Mov_To_From }, { 0b0 } };
+static const char* registerLookupTable[] = { "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
 
-std::string registerLookupTable[] = { "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
+static const char* effectiveAddressTable[] = { "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx" };
 
-std::string effectiveAddressTable[] = { "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx" };
+static const char* jumpTable[] = { "jo", "jno", "jb", "jnb", "je", "jne", "jbe", "jnbe", "js", "jns", "jp", "jnp", "jl", "jnl", "jle", "jnle" };
 
+static const char* loopTable[]{ "loopnz", "loopz", "loop", "jcxz" };
+
+static const char* toFromOpTable[]{ "add", "mov", "no_op", "no_op", "no_op", "sub", "no_op", "cmd" };
+
+char GetBits( char x, int p, int n );
+
+const char* RegisterLookup( char reg, char w );
