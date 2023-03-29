@@ -124,12 +124,23 @@ Operation Mov_Immediate( char*& opstream )
 
     op.dest = RegisterLookup( reg, w );
 
+    Register* dest = AccessRegister( reg, w );
+
     char lo = *(++opstream);
     // std::cout << std::bitset<8>( *opstream ) << std::endl;
 
-    op.src = w
-        ? std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo )
-        : std::to_string( lo );
+    short data = w
+        ? (char)*(++opstream) << 8 | (unsigned char)lo
+        : lo;
+
+    op.src = std::to_string( data );
+
+    // op.src = w
+    //     ? std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo )
+    //     : std::to_string( lo );
+
+    dest->Store( data );
+    op.stored = dest;
 
     op.dest += ",";
     return op;
@@ -291,6 +302,14 @@ Operation To_From( char*& opstream )
             op.dest = d ? RegisterLookup( reg, w ) : RegisterLookup( rm, w );
 
             op.src = d ? RegisterLookup( rm, w ) : RegisterLookup( reg, w );
+
+            Register* destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, w );
+            Register* srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, w );
+
+            destReg->Store( srcReg->Load() );
+
+            op.stored = destReg;
+
             break;
         }
         case mem_mode:

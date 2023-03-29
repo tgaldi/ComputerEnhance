@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "Registers.h"
 
 struct Operation
 {
@@ -8,6 +9,8 @@ struct Operation
 
     std::string dest;
     std::string src;
+
+    Register* stored;
 };
 
 enum mode

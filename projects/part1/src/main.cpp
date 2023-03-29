@@ -9,9 +9,18 @@ void Process( char* opStream, long streamSize )
     while( opStream < endStream )
     {
         Operation op = DecodeInstruction( opStream );
-        printf( "%s %s %s\n", op.name, op.dest.c_str(), op.src.c_str() );
+        printf( "Operation: %s %s %s\n", op.name, op.dest.c_str(), op.src.c_str() );
+        // printf( "Result: %s = %d\n\n", op.stored->toString().c_str(), op.stored->Load() );
         ++opStream;
     }
+    printf( "%s: %d\n", A.toString().c_str(), A.Load() );
+    printf( "%s: %d\n", B.toString().c_str(), B.Load() );
+    printf( "%s: %d\n", C.toString().c_str(), C.Load() );
+    printf( "%s: %d\n", D.toString().c_str(), D.Load() );
+    printf( "%s: %d\n", SP.toString().c_str(), SP.Load() );
+    printf( "%s: %d\n", BP.toString().c_str(), BP.Load() );
+    printf( "%s: %d\n", SI.toString().c_str(), SI.Load() );
+    printf( "%s: %d\n", DI.toString().c_str(), DI.Load() );
 }
 
 int main( int argc, char** argv )

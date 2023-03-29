@@ -2,15 +2,15 @@
 
 #include <string>
 
-static const char* registerLookupTable[] = { "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
+extern const char* registerLookupTable[];
 
-static const char* effectiveAddressTable[] = { "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx" };
+extern const char* effectiveAddressTable[];
 
-static const char* jumpTable[] = { "jo", "jno", "jb", "jnb", "je", "jne", "jbe", "jnbe", "js", "jns", "jp", "jnp", "jl", "jnl", "jle", "jnle" };
+extern const char* jumpTable[];
 
-static const char* loopTable[]{ "loopnz", "loopz", "loop", "jcxz" };
+extern const char* loopTable[];
 
-static const char* toFromOpTable[]{ "add", "mov", "no_op", "no_op", "no_op", "sub", "no_op", "cmd" };
+extern const char* toFromOpTable[];
 
 char GetBits( char x, int p, int n );
 
