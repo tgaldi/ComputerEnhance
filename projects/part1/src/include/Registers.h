@@ -15,6 +15,19 @@ union Memory
     short wide;
 };
 
+enum Flags: unsigned short
+{
+    CF = 0x0,
+    PF = 0x4,
+    AF = 0x8,
+    ZF = 0x10,
+    SF = 0x20,
+    TF = 0x40,
+    IF = 0x80,
+    DF = 0x100,
+    OF = 0x200,
+};
+
 struct Register
 {
     Memory storage;
@@ -46,7 +59,7 @@ struct Register
         return name;
     }
 
-    void Store( int data )
+    void Store( short data )
     {
         switch( size )
         {
@@ -57,18 +70,18 @@ struct Register
             }
             case hi:
             {
-                storage.hi = (char)data;
+                storage.hi = data >> 8;
                 break;
             }
             case wide:
             {
-                storage.wide = (short)data;
+                storage.wide = data;
                 break;
             }
         }
     }
 
-    int Load()
+    short Load()
     {
         switch( size )
         {
@@ -85,9 +98,12 @@ struct Register
                 return storage.wide;
             }
         }
+
         return storage.wide;
     }
 };
+
+extern Register FLAGS;
 
 extern Register A;
 extern Register B;
@@ -101,4 +117,6 @@ extern Register INVALID;
 
 extern Register* registers[];
 
+void SetFlag( Flags flag, bool value );
 Register* AccessRegister( char reg, char w );
+std::string GetFlagState( Flags flag );

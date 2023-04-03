@@ -6,6 +6,10 @@
 #include <iostream>
 
 #include "Tables.h"
+#include "Registers.h"
+
+static void SimulateOperation( OperationType opType, Operation* op, Register* destReg, short srcValue );
+static std::string BuildEffectiveRegisterEncoding( const char* registerName, int* data = nullptr );
 
 Operation DecodeInstruction( char*& opstream )
 {
@@ -52,6 +56,7 @@ Operation DecodeInstruction( char*& opstream )
 
     return operation;
 }
+
 
 Operation Loop( char*& opstream )
 {
@@ -140,7 +145,6 @@ Operation Mov_Immediate( char*& opstream )
     //     : std::to_string( lo );
 
     dest->Store( data );
-    op.stored = dest;
 
     op.dest += ",";
     return op;
@@ -171,6 +175,7 @@ Operation Immediate( char*& opstream )
 
     op.name = toFromOpTable[type];
 
+    Register* destReg = AccessRegister( rm, 0 );
     switch( mod )
     {
         case mem_mode:
@@ -181,6 +186,8 @@ Operation Immediate( char*& opstream )
                 int data = (char)*(++opstream) << 8 | (unsigned char)lo;
 
                 op.dest = BuildEffectiveRegisterEncoding( RegisterLookup( rm, 1 ), &data );
+
+                destReg = AccessRegister( rm, 1 );
             }
             else
             {
@@ -193,6 +200,7 @@ Operation Immediate( char*& opstream )
         {
             int data = *(++opstream);
             op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+
             break;
         }
 
@@ -238,8 +246,10 @@ Operation Immediate( char*& opstream )
             break;
         }
     }
-
     op.dest += ",";
+
+    SimulateOperation( (OperationType)type, &op, destReg, (short)std::stoi( op.src ) );
+
     return op;
 }
 
@@ -249,6 +259,7 @@ Operation To_From( char*& opstream )
 
     char hi = *opstream;
     op.name = toFromOpTable[GetBits( hi, 6, 4 )];
+    OperationType opType = (OperationType)GetBits( hi, 6, 4 );
 
     char d = GetBits( hi, 1, 1 );
     char w = GetBits( hi, 0, 1 );
@@ -267,17 +278,21 @@ Operation To_From( char*& opstream )
     // std::cout << "reg: " << std::bitset<3>( reg ) << std::endl;
     // std::cout << "rm: " << std::bitset<3>( rm ) << std::endl;
 
+    int* data = nullptr;
+    Register* destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, w );
+    Register* srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, w );
+
     switch( mod )
     {
         case byte_mode:
         {
-            int data = *(++opstream);
+            *data = *(++opstream);
             op.dest = d
                 ? RegisterLookup( reg, w )
-                : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+                : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], data );
 
             op.src = d
-                ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data )
+                ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], data )
                 : RegisterLookup( reg, w );
 
             break;
@@ -285,14 +300,14 @@ Operation To_From( char*& opstream )
         case word_mode:
         {
             lo = *(++opstream);
-            int data = (char)*(++opstream) << 8 | (unsigned char)lo;
+            *data = (char)*(++opstream) << 8 | (unsigned char)lo;
 
             op.dest = d
                 ? RegisterLookup( reg, w )
-                : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+                : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], data );
 
             op.src = d
-                ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data )
+                ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], data )
                 : RegisterLookup( reg, w );
 
             break;
@@ -303,12 +318,7 @@ Operation To_From( char*& opstream )
 
             op.src = d ? RegisterLookup( rm, w ) : RegisterLookup( reg, w );
 
-            Register* destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, w );
-            Register* srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, w );
-
-            destReg->Store( srcReg->Load() );
-
-            op.stored = destReg;
+            SimulateOperation( opType, &op, destReg, srcReg->Load() );
 
             break;
         }
@@ -316,15 +326,18 @@ Operation To_From( char*& opstream )
         {
             if( rm == 0b110 )
             {
-                int data = (char)*(++opstream) << 8 | (unsigned char)lo;
+                *data = (char)*(++opstream) << 8 | (unsigned char)lo;
 
                 op.dest = d
                     ? RegisterLookup( reg, w )
-                    : BuildEffectiveRegisterEncoding( RegisterLookup( rm, 1 ), &data );
+                    : BuildEffectiveRegisterEncoding( RegisterLookup( rm, 1 ), data );
 
                 op.src = d
-                    ? BuildEffectiveRegisterEncoding( RegisterLookup( rm, 1 ), &data )
+                    ? BuildEffectiveRegisterEncoding( RegisterLookup( rm, 1 ), data )
                     : RegisterLookup( reg, w );
+
+                destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, 1 );
+                srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, 1 );
             }
             else
             {
@@ -342,12 +355,12 @@ Operation To_From( char*& opstream )
             // "mode not implemented";
         break;
     }
-
     op.dest += ",";
+
     return op;
 }
 
-std::string BuildEffectiveRegisterEncoding( const char* registerName, int* data )
+static std::string BuildEffectiveRegisterEncoding( const char* registerName, int* data )
 {
     std::string buffer = "[";
     buffer += registerName;
@@ -361,4 +374,60 @@ std::string BuildEffectiveRegisterEncoding( const char* registerName, int* data 
     buffer += "]";
 
     return buffer;
+}
+
+static void SimulateOperation( OperationType opType, Operation* op, Register* destReg, short srcValue )
+{
+    switch( opType )
+    {
+        case mov:
+        {
+            destReg->Store( srcValue );
+
+            break;
+        }
+        case cmp:
+        {
+            short sub = destReg->Load() - srcValue;
+
+            SetFlag( Flags::SF, sub < 0.f );
+            SetFlag( Flags::ZF, sub == 0.f );
+
+            // NOTE: cmp uses the sign and zero flags to determine the result of the comparison 
+            // greater_than = !SF && !ZF
+            // less_than = SF
+            // equal = ZF
+
+            op->flags.append( GetFlagState( Flags::SF ) );
+            op->flags.append( GetFlagState( Flags::ZF ) );
+
+            break;
+        }
+        case add:
+        {
+            short add = destReg->Load() + srcValue;
+            destReg->Store( add );
+
+            SetFlag( Flags::SF, add < 0.f );
+            SetFlag( Flags::ZF, add == 0.f );
+
+            op->flags.append( GetFlagState( Flags::SF ) );
+            op->flags.append( GetFlagState( Flags::ZF ) );
+
+            break;
+        }
+        case sub:
+        {
+            short sub = destReg->Load() - srcValue;
+            destReg->Store( sub );
+
+            SetFlag( Flags::SF, sub < 0.f );
+            SetFlag( Flags::ZF, sub == 0.f );
+
+            op->flags.append( GetFlagState( Flags::SF ) );
+            op->flags.append( GetFlagState( Flags::ZF ) );
+
+            break;
+        }
+    }
 }

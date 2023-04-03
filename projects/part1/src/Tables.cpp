@@ -8,8 +8,7 @@ const char* jumpTable[] = { "jo", "jno", "jb", "jnb", "je", "jne", "jbe", "jnbe"
 
 const char* loopTable[]{ "loopnz", "loopz", "loop", "jcxz" };
 
-const char* toFromOpTable[]{ "add", "mov", "no_op", "no_op", "no_op", "sub", "no_op", "cmd" };
-
+const char* toFromOpTable[]{ "add", "mov", "no_op", "no_op", "no_op", "sub", "no_op", "cmp" };
 
 char GetBits( char x, int p, int n )
 {
