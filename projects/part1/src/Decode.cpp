@@ -68,9 +68,11 @@ Operation Loop( char*& opstream )
     char inc8 = *(++opstream);
     op.dest = std::to_string( inc8 );
 
+    IP.offset += 2;
     // std::cout << std::bitset<8>( hi ) << std::endl;
     // std::cout << std::bitset<8>( inc8 ) << std::endl;
 
+    op.ip = IP.offset;
     return op;
 
 }
@@ -85,9 +87,16 @@ Operation Jump( char*& opstream )
     char inc8 = *(++opstream);
     op.dest = std::to_string( inc8 );
 
+    IP.offset += 2;
+    if( !GetFlagState( Flags::ZF ) )
+    {
+        IP.offset += inc8;
+    }
+
     // std::cout << std::bitset<8>( hi ) << std::endl;
     // std::cout << std::bitset<8>( inc8 ) << std::endl;
 
+    op.ip = IP.offset;
     return op;
 }
 
@@ -108,11 +117,15 @@ Operation Immediate_Accumulator( char*& opstream )
     char lo = *(++opstream);
     // std::cout << std::bitset<8>( lo ) << std::endl;
 
+    IP.offset += 2;
+    if( w ) IP.offset += 1;
+
     op.src = w
         ? std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo )
         : std::to_string( lo );
 
     op.dest += ",";
+    op.ip = IP.offset;
     return op;
 }
 
@@ -134,6 +147,9 @@ Operation Mov_Immediate( char*& opstream )
     char lo = *(++opstream);
     // std::cout << std::bitset<8>( *opstream ) << std::endl;
 
+    IP.offset += 2;
+    if( w ) IP.offset += 1;
+
     short data = w
         ? (char)*(++opstream) << 8 | (unsigned char)lo
         : lo;
@@ -147,13 +163,13 @@ Operation Mov_Immediate( char*& opstream )
     dest->Store( data );
 
     op.dest += ",";
+    op.ip = IP.offset;
+
     return op;
 }
 
 Operation Immediate( char*& opstream )
 {
-    Operation op;
-
     char hi = *opstream;
     char s = GetBits( hi, 1, 1 );
     char w = GetBits( hi, 0, 1 );
@@ -172,10 +188,12 @@ Operation Immediate( char*& opstream )
     // std::cout << "mod: " << std::bitset<2>( mod ) << std::endl;
     // std::cout << "type: " << std::bitset<3>( type ) << std::endl;
     // std::cout << "rm: " << std::bitset<3>( rm ) << std::endl;
+    IP.offset += 2;
 
+    Operation op;
     op.name = toFromOpTable[type];
+    Register* destReg = AccessRegister( rm, w );
 
-    Register* destReg = AccessRegister( rm, 0 );
     switch( mod )
     {
         case mem_mode:
@@ -188,6 +206,8 @@ Operation Immediate( char*& opstream )
                 op.dest = BuildEffectiveRegisterEncoding( RegisterLookup( rm, 1 ), &data );
 
                 destReg = AccessRegister( rm, 1 );
+
+                IP.offset += 2;
             }
             else
             {
@@ -201,6 +221,7 @@ Operation Immediate( char*& opstream )
             int data = *(++opstream);
             op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
 
+            IP.offset += 1;
             break;
         }
 
@@ -210,6 +231,8 @@ Operation Immediate( char*& opstream )
             int data = (char)*(++opstream) << 8 | (unsigned char)lo;
 
             op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+
+            IP.offset += 2;
 
             break;
         }
@@ -222,6 +245,8 @@ Operation Immediate( char*& opstream )
     }
 
     lo = *(++opstream);
+    IP.offset += 1;
+
     char sw = (s << 1) | w;
     switch( sw )
     {
@@ -233,6 +258,7 @@ Operation Immediate( char*& opstream )
         case 1: // unsigned word
         {
             op.src = std::to_string( (char)*(++opstream) << 8 | (unsigned char)lo );
+            IP.offset += 1;
             break;
         }
         case 2: // signed byte
@@ -247,6 +273,7 @@ Operation Immediate( char*& opstream )
         }
     }
     op.dest += ",";
+    op.ip = IP.offset;
 
     SimulateOperation( (OperationType)type, &op, destReg, (short)std::stoi( op.src ) );
 
@@ -255,11 +282,8 @@ Operation Immediate( char*& opstream )
 
 Operation To_From( char*& opstream )
 {
-    Operation op;
-
     char hi = *opstream;
-    op.name = toFromOpTable[GetBits( hi, 6, 4 )];
-    OperationType opType = (OperationType)GetBits( hi, 6, 4 );
+    char type = GetBits( hi, 6, 4 );
 
     char d = GetBits( hi, 1, 1 );
     char w = GetBits( hi, 0, 1 );
@@ -278,6 +302,11 @@ Operation To_From( char*& opstream )
     // std::cout << "reg: " << std::bitset<3>( reg ) << std::endl;
     // std::cout << "rm: " << std::bitset<3>( rm ) << std::endl;
 
+    IP.offset += 2;
+
+    Operation op;
+    op.name = toFromOpTable[type];
+
     int* data = nullptr;
     Register* destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, w );
     Register* srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, w );
@@ -295,6 +324,7 @@ Operation To_From( char*& opstream )
                 ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], data )
                 : RegisterLookup( reg, w );
 
+            IP.offset += 1;
             break;
         }
         case word_mode:
@@ -310,6 +340,7 @@ Operation To_From( char*& opstream )
                 ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], data )
                 : RegisterLookup( reg, w );
 
+            IP.offset += 2;
             break;
         }
         case reg_mode:
@@ -318,7 +349,7 @@ Operation To_From( char*& opstream )
 
             op.src = d ? RegisterLookup( rm, w ) : RegisterLookup( reg, w );
 
-            SimulateOperation( opType, &op, destReg, srcReg->Load() );
+            SimulateOperation( (OperationType)type, &op, destReg, srcReg->Load() );
 
             break;
         }
@@ -338,6 +369,8 @@ Operation To_From( char*& opstream )
 
                 destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, 1 );
                 srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, 1 );
+
+                IP.offset += 1;
             }
             else
             {
@@ -356,6 +389,7 @@ Operation To_From( char*& opstream )
         break;
     }
     op.dest += ",";
+    op.ip = IP.offset;
 
     return op;
 }
@@ -390,16 +424,16 @@ static void SimulateOperation( OperationType opType, Operation* op, Register* de
         {
             short sub = destReg->Load() - srcValue;
 
-            SetFlag( Flags::SF, sub < 0.f );
-            SetFlag( Flags::ZF, sub == 0.f );
+            SetFlag( Flags::SF, sub < 0 );
+            SetFlag( Flags::ZF, sub == 0 );
 
             // NOTE: cmp uses the sign and zero flags to determine the result of the comparison 
             // greater_than = !SF && !ZF
             // less_than = SF
             // equal = ZF
 
-            op->flags.append( GetFlagState( Flags::SF ) );
-            op->flags.append( GetFlagState( Flags::ZF ) );
+            op->flags.append( FlagStateToString( Flags::SF ) );
+            op->flags.append( FlagStateToString( Flags::ZF ) );
 
             break;
         }
@@ -408,11 +442,11 @@ static void SimulateOperation( OperationType opType, Operation* op, Register* de
             short add = destReg->Load() + srcValue;
             destReg->Store( add );
 
-            SetFlag( Flags::SF, add < 0.f );
-            SetFlag( Flags::ZF, add == 0.f );
+            SetFlag( Flags::SF, add < 0 );
+            SetFlag( Flags::ZF, add == 0 );
 
-            op->flags.append( GetFlagState( Flags::SF ) );
-            op->flags.append( GetFlagState( Flags::ZF ) );
+            op->flags.append( FlagStateToString( Flags::SF ) );
+            op->flags.append( FlagStateToString( Flags::ZF ) );
 
             break;
         }
@@ -421,11 +455,11 @@ static void SimulateOperation( OperationType opType, Operation* op, Register* de
             short sub = destReg->Load() - srcValue;
             destReg->Store( sub );
 
-            SetFlag( Flags::SF, sub < 0.f );
-            SetFlag( Flags::ZF, sub == 0.f );
+            SetFlag( Flags::SF, sub < 0 );
+            SetFlag( Flags::ZF, sub == 0 );
 
-            op->flags.append( GetFlagState( Flags::SF ) );
-            op->flags.append( GetFlagState( Flags::ZF ) );
+            op->flags.append( FlagStateToString( Flags::SF ) );
+            op->flags.append( FlagStateToString( Flags::ZF ) );
 
             break;
         }

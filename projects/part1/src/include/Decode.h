@@ -10,6 +10,7 @@ struct Operation
     std::string dest;
     std::string src;
     std::string flags;
+    short ip;
 };
 
 enum mode
@@ -40,7 +41,6 @@ Operation Loop( char*& opstream );
 Operation Jump( char*& opstream );
 Operation Immediate( char*& opStream );
 Operation To_From( char*& opStream );
-Operation SimulateToFrom( Operation* op, char reg, char rm, char w, int data );
 Operation Immediate_Accumulator( char*& opStream );
 Operation Mov_Immediate( char*& opstream );
 

@@ -5,22 +5,25 @@
 
 void Process( char* opStream, long streamSize )
 {
+    char* beginStream = opStream;
     char* endStream = opStream + streamSize - 1;
     while( opStream < endStream )
     {
         Operation op = DecodeInstruction( opStream );
-        printf( "Operation: %s %s %s\n", op.name, op.dest.c_str(), op.src.c_str() );
-        printf( "FLAGS %s\n\n", op.flags.c_str() );
-        ++opStream;
+        printf( "Operation: %s %s %s", op.name, op.dest.c_str(), op.src.c_str() );
+        printf( " IP 0x%x", op.ip );
+        if( op.flags.length() > 0 ) printf( " FLAGS %s", op.flags.c_str() );
+        printf( "\n\n" );
+        opStream = beginStream + IP.offset;
     }
-    // printf( "%s: %d\n", A.toString().c_str(), A.Load() );
-    // printf( "%s: %d\n", B.toString().c_str(), B.Load() );
-    // printf( "%s: %d\n", C.toString().c_str(), C.Load() );
-    // printf( "%s: %d\n", D.toString().c_str(), D.Load() );
-    // printf( "%s: %d\n", SP.toString().c_str(), SP.Load() );
-    // printf( "%s: %d\n", BP.toString().c_str(), BP.Load() );
-    // printf( "%s: %d\n", SI.toString().c_str(), SI.Load() );
-    // printf( "%s: %d\n", DI.toString().c_str(), DI.Load() );
+    printf( "%s: %d\n", A.toString().c_str(), A.Load() );
+    printf( "%s: %d\n", B.toString().c_str(), B.Load() );
+    printf( "%s: %d\n", C.toString().c_str(), C.Load() );
+    printf( "%s: %d\n", D.toString().c_str(), D.Load() );
+    printf( "%s: %d\n", SP.toString().c_str(), SP.Load() );
+    printf( "%s: %d\n", BP.toString().c_str(), BP.Load() );
+    printf( "%s: %d\n", SI.toString().c_str(), SI.Load() );
+    printf( "%s: %d\n", DI.toString().c_str(), DI.Load() );
 }
 
 int main( int argc, char** argv )

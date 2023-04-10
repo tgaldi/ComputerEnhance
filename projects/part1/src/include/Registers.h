@@ -17,15 +17,15 @@ union Memory
 
 enum Flags: unsigned short
 {
-    CF = 0x0,
+    CF = 0x1,
     PF = 0x4,
-    AF = 0x8,
-    ZF = 0x10,
-    SF = 0x20,
-    TF = 0x40,
-    IF = 0x80,
-    DF = 0x100,
-    OF = 0x200,
+    AF = 0x10,
+    ZF = 0x40,
+    SF = 0x80,
+    TF = 0x100,
+    IF = 0x200,
+    DF = 0x400,
+    OF = 0x800,
 };
 
 struct Register
@@ -103,6 +103,12 @@ struct Register
     }
 };
 
+struct InsturctionPointer
+{
+    short offset;
+};
+
+extern InsturctionPointer IP;
 extern Register FLAGS;
 
 extern Register A;
@@ -119,4 +125,5 @@ extern Register* registers[];
 
 void SetFlag( Flags flag, bool value );
 Register* AccessRegister( char reg, char w );
-std::string GetFlagState( Flags flag );
+bool GetFlagState( Flags flag );
+std::string FlagStateToString( Flags flag );

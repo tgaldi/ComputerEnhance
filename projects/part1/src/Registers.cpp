@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include "Tables.h"
 
-Register FLAGS { 0, AccessSize::wide, "FLAGS" };
+InsturctionPointer IP = { 0 };
+Register FLAGS{ 0, AccessSize::wide, "FLAGS" };
 
 Register A = { 0, AccessSize::wide, "A" };
 Register B = { 0, AccessSize::wide, "B" };
@@ -35,15 +36,20 @@ void SetFlag( Flags flag, bool value )
 {
     if( value )
     {
-        FLAGS.storage.wide |= (1 << (int)flag);
+        FLAGS.storage.wide |= (1 << (short)flag);
     }
     else
     {
-        FLAGS.storage.wide &= ~(1 << (int)flag);
+        FLAGS.storage.wide &= ~(1 << (short)flag);
     }
 }
 
-std::string GetFlagState( Flags flag )
+bool GetFlagState( Flags flag )
+{
+    return (FLAGS.storage.wide & (1 << (int)flag)) != 0;
+}
+
+std::string FlagStateToString( Flags flag )
 {
     std::string flagState;
     switch( flag )
@@ -95,6 +101,6 @@ std::string GetFlagState( Flags flag )
         }
     }
 
-    flagState.append( (FLAGS.storage.wide & (1 << (int)flag)) ? ": 1\t" : ": 0\t" );
+    flagState.append( (FLAGS.storage.wide & (1 << (int)flag)) ? ":1 " : ":0 " );
     return flagState;
 }
