@@ -1,18 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "Types.h"
 #include "Decode.h"
 
-void Process( char* opStream, long streamSize )
+u8 Memory[65536] = {};
+int Clocks = 0;
+
+void Process( u8* opStream, long streamSize )
 {
-    char* beginStream = opStream;
-    char* endStream = opStream + streamSize - 1;
+    u8* beginStream = opStream;
+    u8* endStream = opStream + streamSize - 1;
     while( opStream < endStream )
     {
-        Operation op = DecodeInstruction( opStream );
-        printf( "Operation: %s %s %s", op.name, op.dest.c_str(), op.src.c_str() );
-        printf( " IP 0x%x", op.ip );
-        if( op.flags.length() > 0 ) printf( " FLAGS %s", op.flags.c_str() );
+        Operation op = DecodeInstruction( opStream, Memory );
+        Clocks += op.clockCount;
+        printf( "Operation: %s %s %s | ", op.name, op.dest.c_str(), op.src.c_str() );
+        printf( "Clocks: +%d = %d | ", op.clockCount, Clocks );
+        printf( "IP 0x% x", op.ip );
+        if( op.flags.length() > 0 ) printf( "FLAGS %s", op.flags.c_str() );
         printf( "\n\n" );
         opStream = beginStream + IP.offset;
     }
@@ -24,6 +30,15 @@ void Process( char* opStream, long streamSize )
     printf( "%s: %d\n", BP.toString().c_str(), BP.Load() );
     printf( "%s: %d\n", SI.toString().c_str(), SI.Load() );
     printf( "%s: %d\n", DI.toString().c_str(), DI.Load() );
+
+    for( int i = 0; i < 65536 / 2; i += 2 )
+    {
+        if( Memory[i] != 0 )
+        {
+            printf( "Memory[%d]: %d\n", i, (s16)Memory[i] );
+        }
+    }
+
 }
 
 int main( int argc, char** argv )
@@ -53,7 +68,7 @@ int main( int argc, char** argv )
     rewind( file );
 
     // allocate memory for file
-    char* buffer = (char*)malloc( sizeof( char ) * fileSize );
+    u8* buffer = (u8*)malloc( sizeof( u8 ) * fileSize );
 
     // ensure system memory was allocated
     if( buffer == nullptr )

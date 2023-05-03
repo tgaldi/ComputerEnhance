@@ -18,10 +18,12 @@ Register INVALID;
 
 Register* registers[] = { &A, &C, &D, &B, &A, &C, &D, &B, &A, &C, &D, &B, &SP, &BP, &SI, &DI };
 
-Register* AccessRegister( char reg, char w )
+EffectiveRegisters effectiveRegisters[] = { { &B, &SI }, { &B, &DI }, { &BP, &SI }, { &BP, &DI }, { &SI }, { &DI}, { &BP }, { &B } };
+
+Register* AccessRegister( u8 reg, u8 w )
 {
     int regIndex = reg + (8 * w);
-    if( regIndex < (sizeof( registers ) / sizeof( char )) )
+    if( regIndex < (sizeof( registers ) / sizeof( u8 )) )
     {
         Register* access = registers[regIndex];
         access->size = (AccessSize)(w + (w * 1));
@@ -32,15 +34,25 @@ Register* AccessRegister( char reg, char w )
     return &INVALID;
 }
 
+s16 LoadEffectiveAddress( u8 rm, u8 w, s16 disp )
+{
+    EffectiveRegisters* effRegisters = &effectiveRegisters[rm];
+    effRegisters->First->size = (AccessSize)(w + (w * 1));
+    if( effRegisters->Second != nullptr )
+        effRegisters->Second->size = (AccessSize)(w + (w * 1));
+
+    return effRegisters->First->Load() + ((effRegisters->Second != nullptr) ? effRegisters->Second->Load() : 0) + disp;
+}
+
 void SetFlag( Flags flag, bool value )
 {
     if( value )
     {
-        FLAGS.storage.wide |= (1 << (short)flag);
+        FLAGS.storage.wide |= (1 << (u8)flag);
     }
     else
     {
-        FLAGS.storage.wide &= ~(1 << (short)flag);
+        FLAGS.storage.wide &= ~(1 << (u8)flag);
     }
 }
 

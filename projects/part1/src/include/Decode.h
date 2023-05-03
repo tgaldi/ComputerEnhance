@@ -2,6 +2,7 @@
 
 #include <string>
 #include "Registers.h"
+#include "Types.h"
 
 struct Operation
 {
@@ -10,6 +11,7 @@ struct Operation
     std::string dest;
     std::string src;
     std::string flags;
+    int clockCount;
     short ip;
 };
 
@@ -22,7 +24,7 @@ enum mode
     mode_count
 };
 
-enum OperationType: char
+enum OperationType : u8
 {
     add = 0x00,
     mov = 0x01,
@@ -35,12 +37,13 @@ enum OperationType: char
     opType_count
 };
 
-Operation DecodeInstruction( char*& opstream );
+Operation DecodeInstruction( u8*& opstream, u8* memory );
 
-Operation Loop( char*& opstream );
-Operation Jump( char*& opstream );
-Operation Immediate( char*& opStream );
-Operation To_From( char*& opStream );
-Operation Immediate_Accumulator( char*& opStream );
-Operation Mov_Immediate( char*& opstream );
+Operation Loop( u8*& opstream );
+Operation Jump( u8*& opstream );
+Operation Immediate( u8*& opStream );
+Operation To_From( u8*& opStream );
+Operation Immediate_Accumulator( u8*& opStream );
+Operation Mov_Immediate_Register( u8*& opstream );
+Operation Mov_Immediate_Register_Memory( u8*& opstream );
 

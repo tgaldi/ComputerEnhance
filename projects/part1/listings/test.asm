@@ -1,6 +1,6 @@
 bits 16
 
-test_label0:
-jnz test_label0
-label:
-jne label
+mov word [1006], 4
+mov bx, word [1000]
+mov cx, word [1002]
+

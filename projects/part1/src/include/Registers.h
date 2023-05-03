@@ -1,21 +1,16 @@
 #pragma once
 
 #include <string>
+#include "Types.h"
 
-enum AccessSize: char
+enum AccessSize: u8
 {
     lo = 0x0,
     hi = 0x1,
     wide = 0x2
 };
-union Memory
-{
-    char lo;
-    char hi;
-    short wide;
-};
 
-enum Flags: unsigned short
+enum Flags: u16
 {
     CF = 0x1,
     PF = 0x4,
@@ -30,7 +25,13 @@ enum Flags: unsigned short
 
 struct Register
 {
-    Memory storage;
+    union Memory
+    {
+        u8 lo;
+        u8 hi;
+        u16 wide;
+    } storage;
+
     AccessSize size = AccessSize::wide;
     std::string name = "invalid";
 
@@ -59,13 +60,13 @@ struct Register
         return name;
     }
 
-    void Store( short data )
+    void Store( u16 data )
     {
         switch( size )
         {
             case lo:
             {
-                storage.lo = (char)data;
+                storage.lo = (s8)data;
                 break;
             }
             case hi:
@@ -81,7 +82,7 @@ struct Register
         }
     }
 
-    short Load()
+    s16 Load()
     {
         switch( size )
         {
@@ -103,9 +104,15 @@ struct Register
     }
 };
 
+struct EffectiveRegisters
+{
+    Register* First;
+    Register* Second;
+};
+
 struct InsturctionPointer
 {
-    short offset;
+    u16 offset;
 };
 
 extern InsturctionPointer IP;
@@ -122,8 +129,10 @@ extern Register DI;
 extern Register INVALID;
 
 extern Register* registers[];
+extern EffectiveRegisters effectiveRegisters[];
 
 void SetFlag( Flags flag, bool value );
-Register* AccessRegister( char reg, char w );
+Register* AccessRegister( u8 reg, u8 w );
 bool GetFlagState( Flags flag );
 std::string FlagStateToString( Flags flag );
+s16 LoadEffectiveAddress( u8 rm, u8 w, s16 disp );
