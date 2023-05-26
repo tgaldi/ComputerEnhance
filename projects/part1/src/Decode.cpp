@@ -209,100 +209,100 @@ Operation Mov_Immediate_Register_Memory( u8*& opstream )
     switch( mod )
     {
         case mem_mode:
-        {
-            if( rm == 0b110 ) // direct adddress
             {
-                s8 dispLo = *(++opstream);
-                // std::cout << std::bitset<8>( dispLo ) << std::endl;
-
-                s16 disp = dispLo;
-                if( w )
+                if( rm == 0b110 ) // direct adddress
                 {
-                    s8 dispHi = *(++opstream);
-                    // std::cout << std::bitset<8>( dispHi ) << std::endl;
+                    s8 dispLo = *(++opstream);
+                    // std::cout << std::bitset<8>( dispLo ) << std::endl;
 
-                    disp = dispHi << 8 | (u8)dispLo;
-                    op.dest.append( "word [+" + std::to_string( disp ) + "]" );
+                    s16 disp = dispLo;
+                    if( w )
+                    {
+                        s8 dispHi = *(++opstream);
+                        // std::cout << std::bitset<8>( dispHi ) << std::endl;
 
+                        disp = dispHi << 8 | (u8)dispLo;
+                        op.dest.append( "word [+" + std::to_string( disp ) + "]" );
+
+                        IP.offset += 1 + w;
+                    }
+                    else
+                    {
+                        op.dest.append( "byte [+" + std::to_string( dispLo ) + "]" );
+                    }
+
+                    // std::cout << std::bitset<8>( disp ) << std::endl;
+
+                    s8 data_lo = *(++opstream);
+                    s8 data_hi = 0;
+                    // std::cout << std::bitset<8>( *opstream ) << std::endl;
+
+                    if( w )
+                    {
+                        data_hi = *(++opstream);
+                        // std::cout << std::bitset<8>( *opstream ) << std::endl;
+                    }
                     IP.offset += 1 + w;
+
+                    s16 data = ((s8)data_hi) << 8 | (u8)data_lo;
+                    op.src = std::to_string( data );
+
+                    MemoryPtr[disp] = data_lo;
+                    if( w ) MemoryPtr[disp + 1] = data_hi;
                 }
                 else
                 {
-                    op.dest.append( "byte [+" + std::to_string( dispLo ) + "]" );
+                    op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
                 }
 
-                // std::cout << std::bitset<8>( disp ) << std::endl;
+                break;
+            }
+        case byte_mode:
+            {
+                s16 disp = *(++opstream);
+                op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &disp );
+                s16 effectiveLoad = LoadEffectiveAddress( rm, w, disp );
 
-                s8 data_lo = *(++opstream);
-                s8 data_hi = 0;
-                // std::cout << std::bitset<8>( *opstream ) << std::endl;
-
-                if( w )
-                {
-                    data_hi = *(++opstream);
-                    // std::cout << std::bitset<8>( *opstream ) << std::endl;
-                }
-                IP.offset += 1 + w;
-
-                s16 data = ((s8)data_hi) << 8 | (u8)data_lo;
+                u8 data = *(++opstream);
+                IP.offset += 2 + w;
                 op.src = std::to_string( data );
 
-                MemoryPtr[disp] = data_lo;
-                if( w ) MemoryPtr[disp + 1] = data_hi;
+                u8* ptr = (MemoryPtr);
+                ptr += effectiveLoad;
+                *ptr = data;
+
+                break;
             }
-            else
-            {
-                op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
-            }
-
-            break;
-        }
-        case byte_mode:
-        {
-            s16 disp = *(++opstream);
-            op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &disp );
-            s16 effectiveLoad = LoadEffectiveAddress( rm, w, disp );
-
-            u8 data = *(++opstream);
-            IP.offset += 2 + w;
-            op.src = std::to_string( data );
-
-            u8* ptr = (MemoryPtr);
-            ptr += effectiveLoad;
-            *ptr = data;
-
-            break;
-        }
 
         case word_mode:
-        {
-            s8 lo_bit = *(++opstream);
-            s16 data = ((s8) * (++opstream)) << 8 | (u8)lo_bit;
+            {
+                s8 lo_bit = *(++opstream);
+                s16 data = ((s8) * (++opstream)) << 8 | (u8)lo_bit;
 
-            op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+                op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
 
-            IP.offset += 2;
+                IP.offset += 2;
 
-            // u8* ptr = (MemoryPtr);
-            // ptr += destReg->Load() + disp;
-            // *ptr = data & 0xFF; // stores the least significant byte
-            // *(++ptr) = (data >> 8) & 0xFF; // stores the most significant byte
+                // u8* ptr = (MemoryPtr);
+                // ptr += destReg->Load() + disp;
+                // *ptr = data & 0xFF; // stores the least significant byte
+                // *(++ptr) = (data >> 8) & 0xFF; // stores the most significant byte
 
 
-            SimulateOperation( OperationType::mov, &op, destReg, data );
-            break;
-        }
+                SimulateOperation( OperationType::mov, &op, destReg, data );
+                break;
+            }
 
         case reg_mode:
-        {
-            destReg = AccessRegister( rm, w );
-            op.dest = RegisterLookup( rm, w );
-            op.clockCount = 2;
-            break;
-        }
+            {
+                destReg = AccessRegister( rm, w );
+                op.dest = RegisterLookup( rm, w );
+                op.clockCount = 2;
+                break;
+            }
         default:
             // "mode not implemented";
-        break;
+            break;
     }
     op.dest += ",";
     op.ip = IP.offset;
@@ -341,52 +341,52 @@ Operation Immediate( u8*& opstream )
     switch( mod )
     {
         case mem_mode:
-        {
-            if( rm == 0b110 ) // direct adddress
+            {
+                if( rm == 0b110 ) // direct adddress
+                {
+                    lo_bit = *(++opstream);
+                    s16 data = ((s8) * (++opstream)) << 8 | (u8)lo_bit;
+                    op.dest = std::string( "[" ) + std::to_string( data ) + std::string( "]" );
+                    // op.dest = BuildEffectiveRegisterEncoding( RegisterLookup( rm, w ), &data );
+
+                    IP.offset += 2;
+                }
+                else
+                {
+                    op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
+                }
+                break;
+            }
+
+        case byte_mode:
+            {
+                s16 data = *(++opstream);
+                op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+
+                IP.offset += 1;
+                break;
+            }
+
+        case word_mode:
             {
                 lo_bit = *(++opstream);
                 s16 data = ((s8) * (++opstream)) << 8 | (u8)lo_bit;
-                op.dest = std::string( "[" ) + std::to_string( data ) + std::string( "]" );
-                // op.dest = BuildEffectiveRegisterEncoding( RegisterLookup( rm, w ), &data );
+
+                op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
 
                 IP.offset += 2;
+
+                break;
             }
-            else
-            {
-                op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
-            }
-            break;
-        }
-
-        case byte_mode:
-        {
-            s16 data = *(++opstream);
-            op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
-
-            IP.offset += 1;
-            break;
-        }
-
-        case word_mode:
-        {
-            lo_bit = *(++opstream);
-            s16 data = ((s8) * (++opstream)) << 8 | (u8)lo_bit;
-
-            op.dest = BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
-
-            IP.offset += 2;
-
-            break;
-        }
 
         case reg_mode:
-        {
-            destReg = AccessRegister( rm, w );
-            op.dest = RegisterLookup( rm, w );
+            {
+                destReg = AccessRegister( rm, w );
+                op.dest = RegisterLookup( rm, w );
 
-            op.clockCount = 4;
-            break;
-        }
+                op.clockCount = 4;
+                break;
+            }
     }
 
     lo_bit = *(++opstream);
@@ -396,26 +396,26 @@ Operation Immediate( u8*& opstream )
     switch( sw )
     {
         case 0: // unsigned byte
-        {
-            op.src = std::to_string( lo_bit );
-            break;
-        }
+            {
+                op.src = std::to_string( lo_bit );
+                break;
+            }
         case 1: // unsigned word
-        {
-            op.src = std::to_string( ((s8) * (++opstream)) << 8 | (u8)lo_bit );
-            IP.offset += 1;
-            break;
-        }
+            {
+                op.src = std::to_string( ((s8) * (++opstream)) << 8 | (u8)lo_bit );
+                IP.offset += 1;
+                break;
+            }
         case 2: // signed byte
-        {
-            op.src = std::to_string( lo_bit );
-            break;
-        }
+            {
+                op.src = std::to_string( lo_bit );
+                break;
+            }
         case 3: // signed word
-        {
-            op.src = std::to_string( (s16)lo_bit );
-            break;
-        }
+            {
+                op.src = std::to_string( (s16)lo_bit );
+                break;
+            }
     }
     op.dest += ",";
     op.ip = IP.offset;
@@ -460,128 +460,128 @@ Operation To_From( u8*& opstream )
     switch( mod )
     {
         case mem_mode:
-        {
-            if( rm == 0b110 ) // direct adddress
             {
-                s8 dispLo = *(++opstream);
-                // std::cout << std::bitset<8>( dispLo ) << std::endl;
-
-                s16 disp = dispLo;
-                if( w )
+                if( rm == 0b110 ) // direct adddress
                 {
-                    s8 dispHi = *(++opstream);
-                    // std::cout << std::bitset<8>( dispHi ) << std::endl;
+                    s8 dispLo = *(++opstream);
+                    // std::cout << std::bitset<8>( dispLo ) << std::endl;
 
-                    disp = dispHi << 8 | (u8)dispLo;
-                    op.src.append( "word [+" + std::to_string( disp ) + "]" );
+                    s16 disp = dispLo;
+                    if( w )
+                    {
+                        s8 dispHi = *(++opstream);
+                        // std::cout << std::bitset<8>( dispHi ) << std::endl;
 
-                    IP.offset += 1 + w;
+                        disp = dispHi << 8 | (u8)dispLo;
+                        op.src.append( "word [+" + std::to_string( disp ) + "]" );
+
+                        IP.offset += 1 + w;
+                    }
+                    else
+                    {
+                        op.src.append( "word [+" + std::to_string( disp ) + "]" );
+                    }
+
+                    // std::cout << std::bitset<8>( disp ) << std::endl;
+
+                    op.dest = d
+                        ? RegisterLookup( reg, w )
+                        : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
+
+                    destReg->Store( MemoryPtr[disp] );
+
+                    // mov disp->reg : reg->disp
+                    op.clockCount = (d) ? 8 + 6 : 9 + 6;
                 }
                 else
                 {
-                    op.src.append( "word [+" + std::to_string( disp ) + "]" );
+                    op.dest = d
+                        ? RegisterLookup( reg, w )
+                        : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
+
+                    op.src = d
+                        ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] )
+                        : RegisterLookup( reg, w );
+
+
+                    // mov mem->reg : reg->memory
+                    op.clockCount = (d) ? 8 + GetEAClocks( rm ) : 9 + GetEAClocks( rm );
                 }
 
-                // std::cout << std::bitset<8>( disp ) << std::endl;
-
-                op.dest = d
-                    ? RegisterLookup( reg, w )
-                    : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
-
-                destReg->Store( MemoryPtr[disp] );
-
-                // mov disp->reg : reg->disp
-                op.clockCount = (d) ? 8 + 6 : 9 + 6;
+                break;
             }
-            else
-            {
-                op.dest = d
-                    ? RegisterLookup( reg, w )
-                    : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] );
-
-                op.src = d
-                    ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm] )
-                    : RegisterLookup( reg, w );
-
-
-                // mov mem->reg : reg->memory
-                op.clockCount = (d) ? 8 + GetEAClocks( rm ) : 9 + GetEAClocks( rm );
-            }
-
-            break;
-        }
         case byte_mode:
-        {
-            s16 data = *(++opstream);
-
-            op.dest = d
-                ? RegisterLookup( reg, w )
-                : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
-
-            //TODO: Is this still needed?
-            if( is_mov )
             {
-                data = *(++opstream);
-                IP.offset += 1 + w;
-                op.src = std::to_string( data );
+                s16 data = *(++opstream);
 
-                op.clockCount = (d) ? 8 + GetEAClocks( rm ) + (w * 4) : 4;
+                op.dest = d
+                    ? RegisterLookup( reg, w )
+                    : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+
+                //TODO: Is this still needed?
+                if( is_mov )
+                {
+                    data = *(++opstream);
+                    IP.offset += 1 + w;
+                    op.src = std::to_string( data );
+
+                    op.clockCount = (d) ? 8 + GetEAClocks( rm ) + (w * 4) : 4;
+                }
+                else
+                {
+                    op.src = d
+                        ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data )
+                        : RegisterLookup( reg, w );
+
+                    std::cout << "ByteMode" << std::endl;
+                    op.clockCount = (d) ? 8 + GetEAClocks( rm ) : 9 + GetEAClocks( rm );
+                }
+
+                IP.offset += 1;
+                break;
             }
-            else
+        case word_mode:
             {
+                s8 lo_bit = *(++opstream);
+                s16 data = ((s8) * (++opstream)) << 8 | (u8)lo_bit;
+
+                op.dest = d
+                    ? RegisterLookup( reg, w )
+                    : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
+
                 op.src = d
                     ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data )
                     : RegisterLookup( reg, w );
 
-                std::cout << "ByteMode" << std::endl;
-                op.clockCount = (d) ? 8 + GetEAClocks( rm ) : 9 + GetEAClocks( rm );
+                if( type == 0b000 ) // add
+                {
+                    op.clockCount = (d) ? 9 + GetEAClocks( rm ) + (w * 4) : 16 + GetEAClocks( rm ) + (w * 4);
+                }
+                else
+                {
+                    op.clockCount = (d) ? 8 + GetEAClocks( rm ) + (w * 4) : 9 + GetEAClocks( rm ) + (w * 4);
+                }
+
+                IP.offset += 2;
+                break;
             }
-
-            IP.offset += 1;
-            break;
-        }
-        case word_mode:
-        {
-            s8 lo_bit = *(++opstream);
-            s16 data = ((s8) * (++opstream)) << 8 | (u8)lo_bit;
-
-            op.dest = d
-                ? RegisterLookup( reg, w )
-                : BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data );
-
-            op.src = d
-                ? BuildEffectiveRegisterEncoding( effectiveAddressTable[rm], &data )
-                : RegisterLookup( reg, w );
-
-            if( type == 0b000 ) // add
-            {
-                op.clockCount = (d) ? 9 + GetEAClocks( rm ) + (w * 4) : 16 + GetEAClocks( rm ) + (w * 4);
-            }
-            else
-            {
-                op.clockCount = (d) ? 8 + GetEAClocks( rm ) + (w * 4) : 9 + GetEAClocks( rm ) + (w * 4);
-            }
-
-            IP.offset += 2;
-            break;
-        }
         case reg_mode:
-        {
-            destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, w );
-            srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, w );
+            {
+                destReg = d ? AccessRegister( reg, w ) : AccessRegister( rm, w );
+                srcReg = d ? AccessRegister( rm, w ) : AccessRegister( reg, w );
 
-            op.dest = d ? RegisterLookup( reg, w ) : RegisterLookup( rm, w );
+                op.dest = d ? RegisterLookup( reg, w ) : RegisterLookup( rm, w );
 
-            op.src = d ? RegisterLookup( rm, w ) : RegisterLookup( reg, w );
+                op.src = d ? RegisterLookup( rm, w ) : RegisterLookup( reg, w );
 
-//          // just doing mov and add for now
-            op.clockCount = type ? 2 : 3;
+    //          // just doing mov and add for now
+                op.clockCount = type ? 2 : 3;
 
-            break;
-        }
+                break;
+            }
         default:
             // "mode not implemented";
-        break;
+            break;
     }
     op.dest += ",";
     op.ip = IP.offset;
@@ -611,54 +611,54 @@ static void SimulateOperation( OperationType opType, Operation* op, Register* de
     switch( opType )
     {
         case mov:
-        {
-            destReg->Store( srcValue );
+            {
+                destReg->Store( srcValue );
 
-            break;
-        }
+                break;
+            }
         case cmp:
-        {
-            s16 sub = destReg->Load() - srcValue;
+            {
+                s16 sub = destReg->Load() - srcValue;
 
-            SetFlag( Flags::SF, sub < 0 );
-            SetFlag( Flags::ZF, sub == 0 );
+                SetFlag( Flags::SF, sub < 0 );
+                SetFlag( Flags::ZF, sub == 0 );
 
-            // NOTE: cmp uses the sign and zero flags to determine the result of the comparison 
-            // greater_than = !SF && !ZF
-            // less_than = SF
-            // equal = ZF
+                // NOTE: cmp uses the sign and zero flags to determine the result of the comparison 
+                // greater_than = !SF && !ZF
+                // less_than = SF
+                // equal = ZF
 
-            op->flags.append( FlagStateToString( Flags::SF ) );
-            op->flags.append( FlagStateToString( Flags::ZF ) );
+                op->flags.append( FlagStateToString( Flags::SF ) );
+                op->flags.append( FlagStateToString( Flags::ZF ) );
 
-            break;
-        }
+                break;
+            }
         case add:
-        {
-            s16 add = destReg->Load() + srcValue;
-            destReg->Store( add );
+            {
+                s16 add = destReg->Load() + srcValue;
+                destReg->Store( add );
 
-            SetFlag( Flags::SF, add < 0 );
-            SetFlag( Flags::ZF, add == 0 );
+                SetFlag( Flags::SF, add < 0 );
+                SetFlag( Flags::ZF, add == 0 );
 
-            op->flags.append( FlagStateToString( Flags::SF ) );
-            op->flags.append( FlagStateToString( Flags::ZF ) );
+                op->flags.append( FlagStateToString( Flags::SF ) );
+                op->flags.append( FlagStateToString( Flags::ZF ) );
 
-            break;
-        }
+                break;
+            }
         case sub:
-        {
-            s16 sub = destReg->Load() - srcValue;
-            destReg->Store( sub );
+            {
+                s16 sub = destReg->Load() - srcValue;
+                destReg->Store( sub );
 
-            SetFlag( Flags::SF, sub < 0 );
-            SetFlag( Flags::ZF, sub == 0 );
+                SetFlag( Flags::SF, sub < 0 );
+                SetFlag( Flags::ZF, sub == 0 );
 
-            op->flags.append( FlagStateToString( Flags::SF ) );
-            op->flags.append( FlagStateToString( Flags::ZF ) );
+                op->flags.append( FlagStateToString( Flags::SF ) );
+                op->flags.append( FlagStateToString( Flags::ZF ) );
 
-            break;
-        }
+                break;
+            }
     }
 }
 
@@ -668,22 +668,23 @@ static int GetEAClocks( u8 rm )
     {
         case 0b000: // [bx + si]
         case 0b011: // [bp + di]
-        {
-            return 7;
-        }
+            {
+                return 7;
+            }
 
         case 0b001: // [bx + di]
         case 0b010: // [bp + si]
-        {
-            return 8;
-        }
+            {
+                return 8;
+            }
 
         case 0b100: // [si]
         case 0b101: // [di]
         case 0b110: // BX,
         case 0b111: // [bx]
-        {
-            return 5;
-        }
+            {
+                return 5;
+            }
     }
+    return 0;
 }
