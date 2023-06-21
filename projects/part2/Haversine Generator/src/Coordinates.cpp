@@ -36,8 +36,8 @@ Coordinate CartesianToLatLong( Point3D point )
     f64 azimuth = atan2( point.y, point.x );
 
     Coordinate coordinate;
-    coordinate.latitude = elevation * DEG;
-    coordinate.longitude = azimuth * DEG;
+    coordinate.latitude = azimuth * DEG;
+    coordinate.longitude = elevation * DEG;
 
     return coordinate;
 }
@@ -119,14 +119,11 @@ void WritePairsToJson( FILE* file, Pair* pairs, u64 count )
 
     for( u64 i = 0; i < count; ++i )
     {
-        fprintf( file, "\n\t{" );
+        const s8* jsonSeperator = (i < count - 1) ? "\n" : ",\n";
 
-        fprintf( file, "\"x0\":%.16f, ", pairs[i].p0.longitude );
-        fprintf( file, "\"y0\":%.16f, ", pairs[i].p0.latitude );
-        fprintf( file, "\"x1\":%.16f, ", pairs[i].p1.longitude );
-        fprintf( file, "\"y1\":%.16f", pairs[i].p1.latitude );
-
-        fprintf( file, "}%s", (i < count - 1) ? "," : "" );
+        fprintf( file,
+            "\t{\"x0\":%.16f, \"y0\":%.16f, \"x1\":%.16f, \"y1\":%.16f}%s",
+            pairs[i].p0.latitude, pairs[i].p0.longitude, pairs[i].p1.latitude, pairs[i].p1.longitude, jsonSeperator );
     }
 
     fprintf( file, "\n]}" );
@@ -134,12 +131,9 @@ void WritePairsToJson( FILE* file, Pair* pairs, u64 count )
 
 void WritePairToJson( FILE* file, Pair& pair, bool lastElement )
 {
-    fprintf( file, "\n\t{" );
+    const s8* jsonSeperator = lastElement ? "\n" : ",\n";
 
-    fprintf( file, "\"x0\":%.16f, ", pair.p0.longitude );
-    fprintf( file, "\"y0\":%.16f, ", pair.p0.latitude );
-    fprintf( file, "\"x1\":%.16f, ", pair.p1.longitude );
-    fprintf( file, "\"y1\":%.16f", pair.p1.latitude );
-
-    fprintf( file, "}%s", lastElement ? "" : "," );
+    fprintf( file,
+        "\t{\"x0\":%.16f, \"y0\":%.16f, \"x1\":%.16f, \"y1\":%.16f}%s",
+        pair.p0.latitude, pair.p0.longitude, pair.p1.latitude, pair.p1.longitude, jsonSeperator );
 }
