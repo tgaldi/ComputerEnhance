@@ -42,3 +42,6 @@
 *.vscode
 *.db*
 *.code-workspace
+projects/part2/Haversine Generator/data_10000000_coordinate_pairs.json
+projects/part2/Haversine Generator/data_10000000_haversine_answer.f64
+.gitignore
