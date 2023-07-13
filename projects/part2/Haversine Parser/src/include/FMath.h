@@ -1,5 +1,4 @@
-#include <random>
-#include <cmath>
+#pragma once
 
 #define RANDOM_32U ((f32)rand() / RAND_MAX)
 #define RANDOM_32S (((f32)rand() / RAND_MAX) * 2.f - 1.f)

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "types.h"
-
 #define EARTH_RADIUS 6372.8f
 
 struct Coordinate

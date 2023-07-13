@@ -1,25 +1,17 @@
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <stdio.h>
-#include <vector>
-
-#include "Coordinates.h"
-#include "logging.h"
-
-static const s8* pair_keys_table[]{ "pairs", "x0", "y0", "x1", "y1" };
+static const char* pair_keys_table[]{ "pairs", "x0", "y0", "x1", "y1" };
 static u32 pair_keys_index = 0;
 
 struct json_pairs
 {
-    const s8* char_ptr;
+    const char* char_ptr;
 
-    s8* file_buffer;
+    char* file_buffer;
     u32 buffer_length;
 
     // Operator overloading in C++ works for objects, not pointers to objects. 
     // The overloaded operator is invoked when it is applied to an instance of the class or struct, 
     // not to a pointer to that class or struct.
-    // const s8* operator++()
+    // const char* operator++()
     // {
     //     if( char_ptr + 1 >= file_buffer + buffer_length )
     //     {
@@ -29,7 +21,7 @@ struct json_pairs
     //     return ++char_ptr;
     // }
 
-    const s8* increment()
+    const char* increment()
     {
         if( char_ptr + 1 >= file_buffer + buffer_length )
         {
@@ -41,6 +33,8 @@ struct json_pairs
 
 inline bool TryReadJsonFile( const char* file_path, json_pairs& pairs_OUT )
 {
+    TimeFunction;
+
     FILE* file = fopen( file_path, "rb" ); // read binary to ensure final null terminator is read
     if( file == nullptr )
     {
@@ -64,7 +58,7 @@ inline bool TryReadJsonFile( const char* file_path, json_pairs& pairs_OUT )
         return false;
     }
 
-    pairs_OUT.file_buffer = (s8*)malloc( file_size + 1 ); // addition byte for null terminator '\0'
+    pairs_OUT.file_buffer = (char*)malloc( file_size + 1 ); // addition byte for null terminator '\0'
     if( pairs_OUT.file_buffer == nullptr )
     {
         LOG_WARNING( "Memory allocation failed." );
@@ -96,6 +90,8 @@ inline bool TryReadJsonFile( const char* file_path, json_pairs& pairs_OUT )
 
 inline bool TryFreePairData( json_pairs& pairs_IN )
 {
+    TimeFunction;
+
     if( pairs_IN.file_buffer == nullptr )
     {
         LOG_WARNING( "json_pairs does not have a valid file_buffer." );
@@ -112,6 +108,8 @@ inline bool TryFreePairData( json_pairs& pairs_IN )
 
 static bool IsWhiteSpace( int char_ptr )
 {
+    TimeFunction;
+
     u8 mask0 = char_ptr == '\n';
     u8 mask1 = char_ptr == '\r';
     u8 mask2 = char_ptr == ' ';
@@ -122,7 +120,9 @@ static bool IsWhiteSpace( int char_ptr )
 
 static void SkipWhiteSpace( json_pairs* file_ptr )
 {
-    const s8* p = file_ptr->char_ptr;
+    TimeFunction;
+
+    const char* p = file_ptr->char_ptr;
     while( IsWhiteSpace( *p ) )
         ++p;
 
@@ -132,11 +132,13 @@ static void SkipWhiteSpace( json_pairs* file_ptr )
 // Try to consume a required character
 static bool ExpectCharacter( json_pairs* file_ptr, const char expected )
 {
+    TimeFunction;
+
     SkipWhiteSpace( file_ptr );
 
     if( *file_ptr->char_ptr != expected )
     {
-        LOG_WARNING( "Unexpected character encountered: %c expected: %c", *file_ptr->char_ptr, expected );
+        LOG_WARNING( "Unexpected character encountered: '%c' expected: '%c'", *file_ptr->char_ptr, expected );
         return false;
     }
 
@@ -148,6 +150,8 @@ static bool ExpectCharacter( json_pairs* file_ptr, const char expected )
 // Consumes whitespace until a character is found.
 static bool AcceptCharacter( json_pairs* file_ptr, const char accepted )
 {
+    TimeFunction;
+
     SkipWhiteSpace( file_ptr );
 
     if( *file_ptr->char_ptr != accepted )
@@ -161,7 +165,9 @@ static bool AcceptCharacter( json_pairs* file_ptr, const char accepted )
 // Increments pair_keys_index if successfull
 static bool ExpectString( json_pairs* file_ptr, const char*& key_OUT )
 {
-    if( pair_keys_index >= (sizeof( pair_keys_table ) / sizeof( pair_keys_table[0] )) )
+    TimeFunction;
+
+    if( pair_keys_index >= ArrayCount( pair_keys_table ) )
     {
         LOG_WARNING( "ExpectString attempted to access element outside of table: %d", pair_keys_index );
         return false;
@@ -175,7 +181,7 @@ static bool ExpectString( json_pairs* file_ptr, const char*& key_OUT )
         return false;
     }
 
-    const s8* expected = pair_keys_table[pair_keys_index];
+    const char* expected = pair_keys_table[pair_keys_index];
     while( AcceptCharacter( file_ptr, '"' ) == false )
     {
         if( *file_ptr->char_ptr != *expected )
@@ -195,7 +201,9 @@ static bool ExpectString( json_pairs* file_ptr, const char*& key_OUT )
 
 inline bool TryParseJsonPairs( json_pairs* file_ptr, std::vector<Pair>& pairs_OUT )
 {
-    const s8* key;
+    TimeFunction;
+
+    const char* key;
 
     if( ExpectCharacter( file_ptr, '{' ) &&
         ExpectString( file_ptr, key ) &&
@@ -216,7 +224,7 @@ inline bool TryParseJsonPairs( json_pairs* file_ptr, std::vector<Pair>& pairs_OU
 
                     if( ExpectString( file_ptr, key ) && ExpectCharacter( file_ptr, ':' ) )
                     {
-                        s8* endChar;
+                        char* endChar;
                         f64 coordinate = strtod( file_ptr->char_ptr, &endChar );
                         file_ptr->char_ptr = endChar;
 

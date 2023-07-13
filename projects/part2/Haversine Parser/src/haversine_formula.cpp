@@ -1,7 +1,3 @@
-#include <cmath>
-
-#include "types.h"
-
 static f64 Square( f64 A )
 {
     f64 Result = (A * A);

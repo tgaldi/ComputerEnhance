@@ -73,10 +73,15 @@ u32 main( u32 arg_count, s8** argument )
         }
         else
         {
-            if( strcmp( method, "uniform" ) != 0 ) fprintf( stderr, "WARNING: Unrecognized method name. Using 'uniform'.\n" );
+            if( strcmp( method, "uniform" ) != 0 )
+            {
+                fprintf( stderr, "WARNING: Unrecognized method name. Using 'uniform'.\n" );
+            }
 
             ExecuteUniformMethod( json_pairs, pair_count, haversine_answer, haversine_summation );
         }
+
+        fwrite( &haversine_summation, sizeof( haversine_summation ), 1, haversine_answer );
 
         fclose( json_pairs );
         fclose( haversine_answer );
@@ -133,7 +138,7 @@ static void ExecuteClusterMethod( FILE* json_file, u64 pair_count, FILE* haversi
     fprintf( json_file, "{\"pairs\":[" );
     for( u32 i = 0; i < CLUSTERS; ++i )
     {
-        for( u32 k = 0; k < pairs_per_cluster; ++k )
+        for( u64 k = 0; k < pairs_per_cluster; ++k )
         {
             Point2D cluster_point = RandPointInCicle( cluster_radius );
             cluster_point.x += cluster_center[i].x;
@@ -153,7 +158,14 @@ static void ExecuteClusterMethod( FILE* json_file, u64 pair_count, FILE* haversi
             pair.p0 = CartesianToLatLong( p0 );
             pair.p1 = CartesianToLatLong( p1 );
 
-            WritePairToJson( json_file, pair );
+            if( i == CLUSTERS - 1 && excess == 0 )
+            {
+                WritePairToJson( json_file, pair, k == pairs_per_cluster - 1 );
+            }
+            else
+            {
+                WritePairToJson( json_file, pair );
+            }
 
             f64 haversine_distance = ReferenceHaversine( pair.p0.latitude, pair.p0.longitude, pair.p1.latitude, pair.p1.longitude, EARTH_RADIUS );
 
