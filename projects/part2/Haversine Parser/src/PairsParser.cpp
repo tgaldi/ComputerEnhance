@@ -108,8 +108,6 @@ inline bool TryFreePairData( json_pairs& pairs_IN )
 
 static bool IsWhiteSpace( int char_ptr )
 {
-    TimeFunction;
-
     u8 mask0 = char_ptr == '\n';
     u8 mask1 = char_ptr == '\r';
     u8 mask2 = char_ptr == ' ';
@@ -120,8 +118,6 @@ static bool IsWhiteSpace( int char_ptr )
 
 static void SkipWhiteSpace( json_pairs* file_ptr )
 {
-    TimeFunction;
-
     const char* p = file_ptr->char_ptr;
     while( IsWhiteSpace( *p ) )
         ++p;
@@ -132,8 +128,6 @@ static void SkipWhiteSpace( json_pairs* file_ptr )
 // Try to consume a required character
 static bool ExpectCharacter( json_pairs* file_ptr, const char expected )
 {
-    TimeFunction;
-
     SkipWhiteSpace( file_ptr );
 
     if( *file_ptr->char_ptr != expected )
@@ -150,8 +144,6 @@ static bool ExpectCharacter( json_pairs* file_ptr, const char expected )
 // Consumes whitespace until a character is found.
 static bool AcceptCharacter( json_pairs* file_ptr, const char accepted )
 {
-    TimeFunction;
-
     SkipWhiteSpace( file_ptr );
 
     if( *file_ptr->char_ptr != accepted )
@@ -165,8 +157,6 @@ static bool AcceptCharacter( json_pairs* file_ptr, const char accepted )
 // Increments pair_keys_index if successfull
 static bool ExpectString( json_pairs* file_ptr, const char*& key_OUT )
 {
-    TimeFunction;
-
     if( pair_keys_index >= ArrayCount( pair_keys_table ) )
     {
         LOG_WARNING( "ExpectString attempted to access element outside of table: %d", pair_keys_index );

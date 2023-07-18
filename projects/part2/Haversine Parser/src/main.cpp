@@ -1,5 +1,3 @@
-static_assert(__COUNTER__ < ArrayCount( profiler::Anchors ), "Number of profile points exceeds size of profiler::Anchors array");
-
 int main( int arg_count, char** argument )
 {
     BeginProfile();

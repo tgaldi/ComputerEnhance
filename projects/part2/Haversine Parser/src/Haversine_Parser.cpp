@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define PROFILER 1
 
 // extern "C" { int _fltused = 0; }
 
@@ -22,3 +23,5 @@
 #include "haversine_formula.cpp"
 #include "PairsParser.cpp"
 #include "main.cpp"
+
+ProfilerEndOfCompilationUnit;

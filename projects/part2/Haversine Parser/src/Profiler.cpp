@@ -1,3 +1,9 @@
+#ifndef PROFILER
+#define PROFILER 0
+#endif
+
+#if PROFILER
+
 struct profile_anchor
 {
     u64 ElapsedTSC_Exclusive; // Excludes children
@@ -7,15 +13,7 @@ struct profile_anchor
 
     char const* Label;
 };
-
-struct profiler
-{
-    profile_anchor Anchors[4096];
-
-    u64 StartTSC;
-    u64 EndTSC;
-};
-static profiler GlobalProfiler;
+static profile_anchor GlobalProfilerAnchors[4096];
 static u32 GlobalProfiler_ParentIndex;
 
 struct profile_block
@@ -33,7 +31,10 @@ struct profile_block
         AnchorIndex = anchorIndex;
         Label = label;
 
-        profile_anchor* Anchor = GlobalProfiler.Anchors + AnchorIndex;
+        profile_anchor* Anchor = GlobalProfilerAnchors + AnchorIndex;
+
+        //NOTE: Capture anchor's time, which may already have some elapsed time stored. 
+        // Since we can enter the same function multiple times we need to accumulate this time.
         PreviousElapsedTSC_Inclusive = Anchor->ElapsedTSC_Inclusive;
 
         GlobalProfiler_ParentIndex = AnchorIndex;
@@ -45,11 +46,13 @@ struct profile_block
         u64 Elapsed = ReadCPUTimer() - StartTSC;
         GlobalProfiler_ParentIndex = ParentIndex;
 
-        profile_anchor* Parent = GlobalProfiler.Anchors + ParentIndex;
+        profile_anchor* Parent = GlobalProfilerAnchors + ParentIndex;
         Parent->ElapsedTSC_Exclusive -= Elapsed;
 
-        profile_anchor* Anchor = GlobalProfiler.Anchors + AnchorIndex;
+        profile_anchor* Anchor = GlobalProfilerAnchors + AnchorIndex;
         Anchor->ElapsedTSC_Exclusive += Elapsed;
+
+        // Accumulate elapsed time.
         Anchor->ElapsedTSC_Inclusive = PreviousElapsedTSC_Inclusive + Elapsed;
 
         ++Anchor->HitCount;
@@ -57,8 +60,8 @@ struct profile_block
     }
 };
 
-// The TimeFunction macro is just a way to call the TimeBlock macro automatically with the name of the containing function. 
-// And NameConcat/NameConcat2 are just workarounds for the fact that C++’s macro preprocessor is terrible, 
+
+// NameConcat/_NameConcat are just workarounds for the fact that C++’s macro preprocessor is terrible, 
 // and can’t merge the value of a preprocessor macro with an identifier any other way. 
 // So really, there is only one macro here worth noting, and that’s TimeBlock.
 
@@ -75,13 +78,13 @@ struct profile_block
 #define _NameConcat(A, B) A##B
 #define NameConcat(A, B) _NameConcat( A, B )
 #define TimeBlock(Name) profile_block NameConcat( Block, __LINE__ )( Name, __COUNTER__ + 1 )
-#define TimeFunction TimeBlock( __func__ )
+#define ProfilerEndOfCompilationUnit static_assert(__COUNTER__ < ArrayCount(GlobalProfilerAnchors), "Number of profile points exceeds size of profiler::Anchors array")
 
 static void PrintTimeElapsed( u64 totalElapsedTSC, profile_anchor* anchor )
 {
     f64 Percent = 100.0 * ((f64)anchor->ElapsedTSC_Exclusive / (f64)totalElapsedTSC);
-    WRITE( "  %s[%llu]: %llu (%.2f%%", anchor->Label, anchor->HitCount, anchor->ElapsedTSC_Exclusive, Percent );
 
+    WRITE( "  %s[%llu]: %llu (%.2f%%", anchor->Label, anchor->HitCount, anchor->ElapsedTSC_Exclusive, Percent );
     if( anchor->ElapsedTSC_Inclusive != anchor->ElapsedTSC_Exclusive )
     {
         f64 PercentWithChildren = 100.0 * ((f64)anchor->ElapsedTSC_Inclusive / (f64)totalElapsedTSC);
@@ -89,6 +92,36 @@ static void PrintTimeElapsed( u64 totalElapsedTSC, profile_anchor* anchor )
     }
     WRITE( ")\n" );
 }
+
+static void PrintAnchorData( u64 TotalCPUElapsed )
+{
+    for( u32 AnchorIndex = 0; AnchorIndex < ArrayCount( GlobalProfilerAnchors ); ++AnchorIndex )
+    {
+        profile_anchor* Anchor = GlobalProfilerAnchors + AnchorIndex;
+        if( Anchor->ElapsedTSC_Inclusive )
+        {
+            PrintTimeElapsed( TotalCPUElapsed, Anchor );
+        }
+    }
+}
+
+#else
+
+#define TimeBlock(...)
+#define PrintAnchorData(...)
+#define ProfilerEndOfCompilationUnit
+
+#endif
+
+struct profiler
+{
+    u64 StartTSC;
+    u64 EndTSC;
+};
+static profiler GlobalProfiler;
+
+// The TimeFunction macro is just a way to call the TimeBlock macro automatically with the name of the containing function. 
+#define TimeFunction TimeBlock( __func__ )
 
 static void BeginProfile( void )
 {
@@ -107,12 +140,6 @@ static void EndProfileAndPrint()
         WRITE_LINE( "Total time: %0.4fms (CPU freq %llu)", 1000.0 * (f64)TotalCPUElapsed / (f64)CPUFreq, CPUFreq );
     }
 
-    for( u32 AnchorIndex = 0; AnchorIndex < ArrayCount( GlobalProfiler.Anchors ); ++AnchorIndex )
-    {
-        profile_anchor* Anchor = GlobalProfiler.Anchors + AnchorIndex;
-        if( Anchor->ElapsedTSC_Inclusive )
-        {
-            PrintTimeElapsed( TotalCPUElapsed, Anchor );
-        }
-    }
+    PrintAnchorData( TotalCPUElapsed );
 }
+
